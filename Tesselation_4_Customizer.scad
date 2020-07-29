@@ -36,34 +36,26 @@ y_shift_adjustment=-15;//[-50,-40,-30,-25,-20,-10,-5,-4,-3,2-,-1,0,1,2,3,4,5,10,
 
 ///////////////////////////////// Main() //////////////////////////////////////
 //preview[view:north, tilt:top]
-cell_x=width/num_in_x;
-cell_y=length/num_in_y;
-my_text=my_character[0];
-linear_extrude(height) 
-    tesselation_hinge(  
-        num=[num_in_x,num_in_y], 
-        size=[width,length],
-        padding=[x_padding_percentage*cell_x/100,y_padding_percentage*cell_y/100],
-        type=array_type
-        ) 
-        translate([x_shift_adjustment*cell_x/100,y_shift_adjustment*cell_y/100])  
-            rotate(theta)
-                text(my_text,valign="center",halign="center");
+//cell_x=width/num_in_x;
+//cell_y=length/num_in_y;
+//my_text=my_character[0];
+//linear_extrude(height) 
+//    tesselation_hinge(  
+//        num=[num_in_x,num_in_y], 
+//        size=[width,length],
+//        padding=[x_padding_percentage*cell_x/100,y_padding_percentage*cell_y/100],
+//        type=array_type
+//        ) 
+//        translate([x_shift_adjustment*cell_x/100,y_shift_adjustment*cell_y/100])  
+//            rotate(theta)
+//                text(my_text,valign="center",halign="center");
 
 ////Uncomment lines to see Examples (all flat for DXF exporting)
 ///////////////////////////// Hinge() ///////////////////////////////////////
-//hinge();
-//hinge(d=6);
-//hinge(length=20, size[0]=39,d=6,hinge_length=2.5,hinges_across_length=2,minimum_thinness=3);
-//hinge(length=30, size[0]=20,d=2,hinge_length=2.5,hinges_across_length=2,minimum_thinness=3,center=true);
-//hinge(length=20, size[0]=40,d=3,hinge_length=4,hinges_across_length=0,minimum_thinness=1);
-//linear_extrude(height=5) hinge(length=20, size[0]=40,d=6,hinge_length=2.5,hinges_across_length=2,minimum_thinness=3);
-//////////////////////////// Add_Hinge() ////////////////////////////////////
-//add_hinge(size[0]=20,length=size[1],center=true) square([3*size[1],size[1]-1],center=true);
-//add_hinge(size[0]=20,length=90) translate([5,0]) circle(d=90);
-//add_hinge(size[0]=30,length=90,hinges_across_length=3) circle(d=90);
-//add_hinge(size[0]=30,length=90,hinges_across_length=3,center=false) circle(d=90);
-//add_hinge(size[0]=30,length=90,hinges_across_length=3,minimum_thinness=.1) circle(d=90);
+//new_hinge();
+//add_new_hinge(size_x = 50,size_y = 200, size_z = 2,center=true) cube([200,200,2 ],center = true);
+
+
 //////////////////////////// Tesselate() ////////////////////////////////////
 //tesselate(num=[3,6], size=[3,2],padding=[.1,.1],type="hex") rotate(30) circle($fn=6);
 //tesselate(num=[3,6], size=[2,1],padding=[.4,.1],type="tri") translate([-.1,-.1]) text("T",valign="center",halign="center");
@@ -78,61 +70,120 @@ linear_extrude(height)
 //tesselation_hinge(num=[3,6], size=[3,6],padding=[.4,.1],type="tri") translate([-.1,-.1]) text("T",valign="center",halign="center");
 //tesselation_hinge(size=[6,6],num=[6,6],padding=[.2,.2],type="hex") rotate(30) circle($fn=6);
 
-/////////////////////////////// Functions /////////////////////////////////////
-module hinge(size=[20,30],d=3,minimum_thinness=3,hinge_length=3,hinges_across_length=2,center=false){
-    //size[1] = the y dimension of the hinge, parallel to the laser cuts
-    //size[0] = the x dimension of the hinge, transverse to laser cuts
-    //d=the distance between parallel laser cuts
-    //What is the minimum distance that two parallel lines can be apart before the laser does something catastrophic? E.g. setting uncontrollable fire to the work piece. This is "minimum_thinness"
-    //hinge_length=the distance between 2 colinear laser cuts
-    //hinges_across_length=the number of hinges across the size[1] of the hinge
-    //center is a boolean value, if true, place the center of the rectangle at the origin, if false, put the bottom left corner at the origin (just like square() and cube())
-    ep=.00101;//epsilon, a small number,=1.01 micron, a hack (for OpenSCAD 2015.03) used to make square()'s which look like lines (which OpenSCAD doesn't support). Hopefully, your laser has a function which says something like "ignore cuts less than THRESHOLD apart", set that to anything greater than ep.
-    adjust=center?-[size[0],size[1]]/2:[0,0];//a vector for adjusting the center position
-    th=d/2<minimum_thinness?ep:d/2;//If the distance between lines is less than the minimum thickness, just make linear cuts, specifically, set the size[0]=th=thickness of the squares to ep, which is just above 1 micron (for 1=1mm slicers)
-    n=floor(size[0]/d);
-    m=floor(abs(hinges_across_length)); echo(str("Number of hinges (m)=",m)); //input cleaning, ensures m ϵ {non-negative integers}
-    echo(str("Suggested filename: Living Hinge-",size[1],"x",size[0],"mm-h=",m,"x",hinge_length,"-th=",th));
-    echo(str("The distance between parallel laser cuts (d) is: ",d," mm."));
-    //the size[1] of the short lines
-    short=(size[1]-m*hinge_length)/(m+1);
-    //the size[1] of the long lines
-    long=(size[1]-(m+1)*hinge_length)/(m);
-    echo(str("There should be n=",n," links in the hinge."));
-    translate(adjust) difference(){ 
-        square([size[0],size[1]],center=false);
-        if(m==0) 
-            //In the special case where |hinges_across_length|<1, the hinge should look like:
-            // |  --------------------------------------|
-            // |--------------------------------------  |
-            // |  --------------------------------------|
-            // |--------------------------------------  |
-                for(i=[0:n])
-                    translate([i*d,(pow(-1,i))*hinge_length]) // (-1)^i,{iϵZ} = {-1,+1,-1,+1,...}
-                        square([th,size[1]]);                
-        else
-            //A hinge with hinges_across_length=2 should look like:
-            // |------------  ------------  ------------|
-            // |  -----------------  -----------------  |
-            // |------------  ------------  ------------|
-            // |  -----------------  -----------------  |
-            for(i=[0:n]){ //Iterating across x
-                translate([i*d*1,0]){ //Do the x translation seperate from the y translations
-                    if(i%2==1) //For odd columns
-                        for(j=[0:m-1]){
-                            translate([0,hinge_length+j*(long+hinge_length)]) 
-                                square([th,long]);
-                            }
-                    if(i%2==0) //For even columns
-                        for(j=[0:m]){
-                            translate([0,j*(short+hinge_length)]) 
-                                square([th,short]);
-                        }
-                    }
+
+    
+module new_hinge(size_x = 50, 
+                 size_y = 100,
+                 size_z = 3,
+                 num_holes_x = 13, 
+                 num_holes_y = 3, 
+                 mat_x = 2,
+                 mat_y = 3,
+                 min_hole_x = 1.5, 
+                 center=true){
+    $fn = 30;
+    ep = 0.00101;
+    v_center=center?-[size_x,size_y,size_z]/2:[0,0,0];//a vector for adjusting the center position
+    
+    sum_hole_width = size_x - mat_x*(num_holes_x-1);
+    hw = sum_hole_width/num_holes_x ;
+    hole_width = hw < min_hole_x ? ep : (sum_hole_width/num_holes_x);               
+    mat_x = hw < min_hole_x ? size_x/num_holes_x : mat_x;
+        
+    sum_hole_length = size_y - mat_y*(num_holes_y+1);
+    hole_length = sum_hole_length/(num_holes_y);
+    
+    translate(v_center) difference(){
+        // create a square and cut out a bunch of holes to form the hinge
+        cube([size_x,size_y,size_z],center = false);
+        
+        //A hinge with hinges_across_length=2 should look like:
+            // |----------  ------------------  ----------|
+            // |  ------------------  ------------------  |
+            // |----------  ------------------  ----------|
+            // |  ------------------  ------------------  |
+        
+        for (x=[0:num_holes_x-1]){
+            translate([x*(mat_x+hole_width) ,0,0]){
+                for(y=[0:num_holes_y]){
+                    translate([0,y*(hole_length + mat_y) - (x%2)*(hole_length/2) + mat_y, 0])
+                        rounded_sheet([hole_width,hole_length,size_z], radius = hole_width/2, center = false);
                 }
             }
+        }        
+    }  
+}
+
+
+module rounded_sheet(size, radius, center = true, sides=[1,1,1,1]){
+     t = center ? [[ size[0]/2, size[1]/2, 0],
+                  [-size[0]/2,  size[1]/2, 0],
+                  [ size[0]/2, -size[1]/2, 0],
+                  [-size[0]/2, -size[1]/2, 0]]
+                :
+                 [[ size[0], size[1], size[2]/2],
+                  [       0, size[1], size[2]/2],
+                  [ size[0], 0      , size[2]/2],
+                  [       0, 0      , size[2]/2]];
+    r = [180,-90, 90, 0];
+    
+    difference(){
+        cube(size, center=center);
+        for(i=[0:3]) if(sides[i])
+        {
+            translate(t[i]) rotate([0,0,r[i]]) fillet(radius, size[2]);           
+        }
+    }
+}
+
+
+module fillet(r,thickness) {
+    translate([r / 2, r / 2, 0])
+
+        difference() {
+            cube([r + 0.01, r + 0.01,thickness], center = true);
+
+            translate([r/2, r/2, 0])
+                cylinder(r =r,h=thickness, center = true);
+        }
+}
+
+
+module add_new_hinge(size_x = 50, 
+                     size_y = 100, 
+                     size_z = 2,
+                     num_holes_x = 13, 
+                     num_holes_y = 3, 
+                     mat_x = 2,
+                     mat_y = 3,
+                     min_hole_x = 2, 
+                     center=true){
+    //add_hinge() modifies another 2D object, by adding a hinge which is centered on the origin (by default, this can be changed to false, so that the bottom left corner of the hinge is at the origin. It uses the same parameters as hinge(). 
+    //First, difference() a rectangle the size of the hinge from the child object (makes a hole for the hinge
+    //Second, union() a hinge with First (puts the hinge in the hole)
+    //Third, intersection() the child object with Second (cuts off any extra hinge that sticks out past the child object)
+    ep = 0.00101;
+    render() intersection(){
+        children();
+        union(){
+            new_hinge(size_x = size_x, 
+                      size_y = size_y, 
+                      size_z = size_z,
+                      num_holes_x = num_holes_x, 
+                      num_holes_y = num_holes_y, 
+                      mat_x = mat_x,
+                      mat_y = mat_y,
+                      min_hole_x = min_hole_x, 
+                      center=center);
+            difference(){
+                children();
+                cube([size_x,size_y,size_z],center=center);
+            }
+        }
     }
     
+}  
+
 module add_hinge(size=[20,30],d=3,minimum_thinness=3,hinge_length=3,hinges_across_length=2,center=true){
     //add_hinge() modifies another 2D object, by adding a hinge which is centered on the origin (by default, this can be changed to false, so that the bottom left corner of the hinge is at the origin. It uses the same parameters as hinge(). 
     //First, difference() a rectangle the size of the hinge from the child object (makes a hole for the hinge
