@@ -1,5 +1,3 @@
-use <Tesselation_4_Customizer.scad>
-use <lasercut/lasercut.scad>
 
 $fn = 30;
 
@@ -46,8 +44,6 @@ module notches(size, dist_from_edge, notch_height, notch_width, r = 5){
     }
 }
 
-function select(vector,indices) = [ for (index = indices) vector[index] ];
-
     
 module new_hinge(size_x = 50, 
                  size_y = 100,
@@ -80,11 +76,20 @@ module new_hinge(size_x = 50,
             // |----------  ------------------  ----------|
             // |  ------------------  ------------------  |
         
+        // go chroug each of the major lines
         for (x=[0:num_holes_x-1]){
-            translate([x*(mat_x+hole_width) ,0,0]){
+            translate([x*(mat_x+hole_width) + hole_width/2 ,0,0]){
+                
+                // go throug each of the individual cutouts. 
                 for(y=[0:num_holes_y]){
                     translate([0,y*(hole_length + mat_y) - (x%2)*(hole_length/2) + mat_y, 0])
-                        rounded_sheet([hole_width,hole_length,size_z], radius = hole_width/2, center = false);
+                        
+                        // cutout a hole with nice rounded edges. 
+                        hull(){
+                            cylinder(size_z, r = hole_width/2);
+                            translate([0,hole_length]) cylinder(size_z, r = hole_width/2);
+                        };
+                        
                 }
             }
         }        
@@ -140,9 +145,10 @@ module add_new_hinge(size_x = 50,
     //Second, union() a hinge with First (puts the hinge in the hole)
     //Third, intersection() the child object with Second (cuts off any extra hinge that sticks out past the child object)
     ep = 0.00101;
-    render() intersection(){
-        children();
-        union(){
+            difference(){
+                children();
+                cube([size_x,size_y,size_z],center=center);
+            }
             new_hinge(size_x = size_x, 
                       size_y = size_y, 
                       size_z = size_z,
@@ -152,11 +158,6 @@ module add_new_hinge(size_x = 50,
                       mat_y = mat_y,
                       min_hole_x = min_hole_x, 
                       center=center);
-            difference(){
-                children();
-                cube([size_x,size_y,size_z],center=center);
-            }
-        }
-    }
+    
     
 }  
